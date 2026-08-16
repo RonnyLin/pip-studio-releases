@@ -1,0 +1,27 @@
+{
+  "version": "0.2.2",
+  "title": "PiP Studio 0.2.2",
+  "sourceBaseUrl": "https://pip-studio-download-1421879931.cos.ap-guangzhou.myqcloud.com",
+  "installer": {
+    "sourceFileName": "Pip Studio Setup 0.2.2.exe",
+    "releaseFileName": "Pip-Studio-Setup-0.2.2.exe",
+    "size": 138009001,
+    "sha256": "e4c9bf5e203f750408f5621ca95dc598f449dac01130b6f063a32d8167af8a9f",
+    "sha512Base64": "LlFG7Pop+HY2dN1iWtV2frcPkyMTiW2Mehi9XQ0FkMctxJmluMKcqICRkYpl+5ZZRtWYte3cqNSsRZ6gR2MKqg=="
+  },
+  "blockmap": {
+    "sourceFileName": "Pip Studio Setup 0.2.2.exe.blockmap",
+    "releaseFileName": "Pip-Studio-Setup-0.2.2.exe.blockmap",
+    "size": 145435,
+    "sha256": "31cb2a3bb9dcd8a5fcbc53eb25e92f14e6d935449a03934c31ac62312c9c3093"
+  },
+  "metadata": {
+    "sourceFileName": "latest.yml",
+    "releaseFileName": "latest.yml",
+    "size": 349,
+    "sha256": "d5caf3631031998ba6ad70b7c3b1cd09b22f8f069949e7c7ae9d601ed62faad6",
+    "releaseSize": 349,
+    "releaseSha256": "9ca1f44379f7c4386dd3227cfb07d2a7ab4e2ddcba7b8057444c086bc0adac6d"
+  },
+  "stableInstallerAlias": "Pip-Studio-Setup.exe"
+}

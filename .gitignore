@@ -1,0 +1,6 @@
+.tmp/
+*.exe
+*.blockmap
+latest.yml
+SHA256SUMS.txt
+

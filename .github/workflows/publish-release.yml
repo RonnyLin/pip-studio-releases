@@ -1,0 +1,103 @@
+name: Publish verified release
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+
+permissions: {}
+
+concurrency:
+  group: publish-release-${{ github.ref_name }}
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    name: Publish ${{ github.ref_name }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: write
+
+    steps:
+      - name: Check out tagged release manifest
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          fetch-depth: 1
+          ref: ${{ github.sha }}
+
+      - name: Download and verify release files
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+          ASSET_DIR: ${{ runner.temp }}/pip-studio-release
+        shell: bash
+        run: |
+          set -euo pipefail
+          node scripts/prepare-release.mjs \
+            "releases/${RELEASE_TAG}.json" \
+            "${ASSET_DIR}" \
+            "${RELEASE_TAG}"
+
+      - name: Create draft release and upload assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RELEASE_TAG: ${{ github.ref_name }}
+          ASSET_DIR: ${{ runner.temp }}/pip-studio-release
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          release_json="${RUNNER_TEMP}/github-release.json"
+          if ! gh api \
+            -H "Accept: application/vnd.github+json" \
+            "repos/${GITHUB_REPOSITORY}/releases/tags/${RELEASE_TAG}" \
+            > "${release_json}" 2>/dev/null; then
+            release_title="$(node -p "require('./releases/${RELEASE_TAG}.json').title")"
+            gh release create "${RELEASE_TAG}" \
+              --draft \
+              --verify-tag \
+              --title "${release_title}" \
+              --notes-file "releases/${RELEASE_TAG}.md"
+            gh api \
+              -H "Accept: application/vnd.github+json" \
+              "repos/${GITHUB_REPOSITORY}/releases/tags/${RELEASE_TAG}" \
+              > "${release_json}"
+          fi
+
+          node scripts/plan-release-upload.mjs \
+            "${ASSET_DIR}/release-assets.json" \
+            "${release_json}" \
+            "${ASSET_DIR}" \
+            "${RELEASE_TAG}" \
+            > "${RUNNER_TEMP}/missing-assets.txt"
+
+          if [[ -s "${RUNNER_TEMP}/missing-assets.txt" ]]; then
+            mapfile -t missing_assets < "${RUNNER_TEMP}/missing-assets.txt"
+            gh release upload "${RELEASE_TAG}" "${missing_assets[@]}"
+          fi
+
+          gh api \
+            -H "Accept: application/vnd.github+json" \
+            "repos/${GITHUB_REPOSITORY}/releases/tags/${RELEASE_TAG}" \
+            > "${release_json}"
+          node scripts/verify-uploaded-release.mjs \
+            "${ASSET_DIR}/release-assets.json" \
+            "${release_json}" \
+            "${RELEASE_TAG}"
+
+          if [[ "$(node -p 'require(process.argv[1]).draft' "${release_json}")" == "true" ]]; then
+            gh release edit "${RELEASE_TAG}" --draft=false --latest
+          fi
+
+      - name: Show published release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RELEASE_TAG: ${{ github.ref_name }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh release view "${RELEASE_TAG}" \
+            --json url,tagName,isDraft,isPrerelease,assets
