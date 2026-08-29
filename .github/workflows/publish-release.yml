@@ -48,10 +48,23 @@ jobs:
           set -euo pipefail
 
           release_json="${RUNNER_TEMP}/github-release.json"
-          if ! gh api \
-            -H "Accept: application/vnd.github+json" \
-            "repos/${GITHUB_REPOSITORY}/releases/tags/${RELEASE_TAG}" \
-            > "${release_json}" 2>/dev/null; then
+          fetch_release() {
+            gh api \
+              -H "Accept: application/vnd.github+json" \
+              "repos/${GITHUB_REPOSITORY}/releases?per_page=100" \
+              | node -e '
+                let input = "";
+                process.stdin.setEncoding("utf8");
+                process.stdin.on("data", chunk => { input += chunk; });
+                process.stdin.on("end", () => {
+                  const release = JSON.parse(input).find(item => item.tag_name === process.env.RELEASE_TAG);
+                  if (!release) process.exit(1);
+                  process.stdout.write(JSON.stringify(release));
+                });
+              ' > "${release_json}"
+          }
+
+          if ! fetch_release 2>/dev/null; then
             release_title="$(node -p "require('./releases/${RELEASE_TAG}.json').title")"
             if ! create_output="$(gh release create "${RELEASE_TAG}" \
               --draft \
@@ -61,10 +74,18 @@ jobs:
               echo "::error title=GitHub Release creation failed::${create_output}"
               exit 1
             fi
-            gh api \
-              -H "Accept: application/vnd.github+json" \
-              "repos/${GITHUB_REPOSITORY}/releases/tags/${RELEASE_TAG}" \
-              > "${release_json}"
+            release_found=false
+            for attempt in {1..10}; do
+              if fetch_release 2>/dev/null; then
+                release_found=true
+                break
+              fi
+              sleep 2
+            done
+            if [[ "${release_found}" != "true" ]]; then
+              echo "::error title=Draft lookup failed::GitHub did not return ${RELEASE_TAG} after creation."
+              exit 1
+            fi
           fi
 
           node scripts/plan-release-upload.mjs \
@@ -79,10 +100,7 @@ jobs:
             gh release upload "${RELEASE_TAG}" "${missing_assets[@]}"
           fi
 
-          gh api \
-            -H "Accept: application/vnd.github+json" \
-            "repos/${GITHUB_REPOSITORY}/releases/tags/${RELEASE_TAG}" \
-            > "${release_json}"
+          fetch_release
           node scripts/verify-uploaded-release.mjs \
             "${ASSET_DIR}/release-assets.json" \
             "${release_json}" \
