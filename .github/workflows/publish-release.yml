@@ -5,7 +5,8 @@ on:
     tags:
       - "v*.*.*"
 
-permissions: {}
+permissions:
+  contents: write
 
 concurrency:
   group: publish-release-${{ github.ref_name }}
@@ -16,9 +17,6 @@ jobs:
     name: Publish ${{ github.ref_name }}
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    permissions:
-      contents: write
-
     steps:
       - name: Check out tagged release manifest
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -55,11 +53,14 @@ jobs:
             "repos/${GITHUB_REPOSITORY}/releases/tags/${RELEASE_TAG}" \
             > "${release_json}" 2>/dev/null; then
             release_title="$(node -p "require('./releases/${RELEASE_TAG}.json').title")"
-            gh release create "${RELEASE_TAG}" \
+            if ! create_output="$(gh release create "${RELEASE_TAG}" \
               --draft \
               --verify-tag \
               --title "${release_title}" \
-              --notes-file "releases/${RELEASE_TAG}.md"
+              --notes-file "releases/${RELEASE_TAG}.md" 2>&1)"; then
+              echo "::error title=GitHub Release creation failed::${create_output}"
+              exit 1
+            fi
             gh api \
               -H "Accept: application/vnd.github+json" \
               "repos/${GITHUB_REPOSITORY}/releases/tags/${RELEASE_TAG}" \
