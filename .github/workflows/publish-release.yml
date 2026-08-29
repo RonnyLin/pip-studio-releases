@@ -96,8 +96,21 @@ jobs:
             > "${RUNNER_TEMP}/missing-assets.txt"
 
           if [[ -s "${RUNNER_TEMP}/missing-assets.txt" ]]; then
-            mapfile -t missing_assets < "${RUNNER_TEMP}/missing-assets.txt"
-            gh release upload "${RELEASE_TAG}" "${missing_assets[@]}"
+            release_id="$(node -p 'require(process.argv[1]).id' "${release_json}")"
+            while IFS= read -r asset_path; do
+              asset_name="$(basename "${asset_path}")"
+              encoded_name="$(node -p 'encodeURIComponent(process.argv[1])' "${asset_name}")"
+              curl --fail-with-body --silent --show-error \
+                --retry 3 --retry-all-errors \
+                --request POST \
+                --header "Authorization: Bearer ${GH_TOKEN}" \
+                --header "Accept: application/vnd.github+json" \
+                --header "X-GitHub-Api-Version: 2022-11-28" \
+                --header "Content-Type: application/octet-stream" \
+                --data-binary "@${asset_path}" \
+                "https://uploads.github.com/repos/${GITHUB_REPOSITORY}/releases/${release_id}/assets?name=${encoded_name}" \
+                > /dev/null
+            done < "${RUNNER_TEMP}/missing-assets.txt"
           fi
 
           fetch_release
@@ -107,7 +120,14 @@ jobs:
             "${RELEASE_TAG}"
 
           if [[ "$(node -p 'require(process.argv[1]).draft' "${release_json}")" == "true" ]]; then
-            gh release edit "${RELEASE_TAG}" --draft=false --latest
+            release_id="$(node -p 'require(process.argv[1]).id' "${release_json}")"
+            gh api \
+              --method PATCH \
+              -H "Accept: application/vnd.github+json" \
+              "repos/${GITHUB_REPOSITORY}/releases/${release_id}" \
+              -F draft=false \
+              -f make_latest=true \
+              > /dev/null
           fi
 
       - name: Show published release
