@@ -29,6 +29,14 @@ The desktop app's automatic updater currently remains on the production COS
 endpoint. This repository provides an additional global download channel; it
 does not silently change existing clients' update source.
 
+Starting with 0.3.1, releases contain separate domestic and global builds.
+`Pip-Studio-CN-Setup.exe` is the domestic build; `Pip-Studio-Setup.exe` is the
+global build. Both retain the Chinese/English language switch. Existing domestic
+clients continue updating from COS, while the new global build uses this release's
+`latest.yml` and stays on the global build. `latest-cn.yml` is provided separately.
+The optional `global` section in a release manifest is verified independently;
+all assets from both editions must pass checks before publishing.
+
 ## Integrity
 
 Every release includes `SHA256SUMS.txt`. The Electron updater also validates the

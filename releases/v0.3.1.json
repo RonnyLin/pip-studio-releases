@@ -1,0 +1,51 @@
+{
+  "version": "0.3.1",
+  "title": "PiP Studio 0.3.1 · Faster MP4 recording / 更快的 MP4 录制",
+  "sourceBaseUrl": "https://pip-studio-download-1421879931.cos.ap-guangzhou.myqcloud.com",
+  "installer": {
+    "sourceFileName": "Pip Studio Setup 0.3.1.exe",
+    "releaseFileName": "Pip-Studio-Setup-0.3.1.exe",
+    "size": 155398243,
+    "sha256": "f0d4de11fd151fe456a57624314fe79344931c6bb206977dc9a6c8e7ef6c6cc5",
+    "sha512Base64": "qYPxS5HXI7AREAVvBv288jgNY6Mo6YPnECZvrdDRFUPXJxYjZB31INBA68uxBSCFH/62HKzXC8tSdW9UiFwIIQ=="
+  },
+  "blockmap": {
+    "sourceFileName": "Pip Studio Setup 0.3.1.exe.blockmap",
+    "releaseFileName": "Pip-Studio-Setup-0.3.1.exe.blockmap",
+    "size": 163414,
+    "sha256": "a1b02042ce22aaf335401e536cb13726040b41403a6c6e0b87eff93f6ae8b035"
+  },
+  "metadata": {
+    "sourceFileName": "latest-cn-0.3.1.yml",
+    "releaseFileName": "latest-cn.yml",
+    "size": 349,
+    "sha256": "52d7833a29da74fe3aef3599659131f58d0d9501490d1a9f77eafeeef57cb932",
+    "releaseSize": 349,
+    "releaseSha256": "defd74b60bec315c5e3c3874c9d87f4029b231714484c747321dc48b3254222f"
+  },
+  "stableInstallerAlias": "Pip-Studio-CN-Setup.exe",
+  "global": {
+    "installer": {
+      "sourceFileName": "Pip-Studio-Global-Setup-0.3.1.exe",
+      "releaseFileName": "Pip-Studio-Global-Setup-0.3.1.exe",
+      "size": 155398055,
+      "sha256": "6981ac921b4141c3fbc2cad186cd8a07cf5a217f600c821787b636ba2a8d27fd",
+      "sha512Base64": "EmXfAnoshMXO5WDLN+Efgh28eJsLOoJretBvGf/G37NakiV4D5Jg5vwFIsUCb7yUmAwL5GRjVtCJaEN4Y84QSQ=="
+    },
+    "blockmap": {
+      "sourceFileName": "Pip-Studio-Global-Setup-0.3.1.exe.blockmap",
+      "releaseFileName": "Pip-Studio-Global-Setup-0.3.1.exe.blockmap",
+      "size": 163225,
+      "sha256": "dd52220894bdf60824aa61a36862625f35937b38c058d35bd22341926a29b62e"
+    },
+    "metadata": {
+      "sourceFileName": "latest-global-0.3.1.yml",
+      "releaseFileName": "latest.yml",
+      "size": 363,
+      "sha256": "66752a2172fda8d1ffeeb93fccedf03357c6227e8d7ed226dbc4b8715a132459",
+      "releaseSize": 363,
+      "releaseSha256": "66752a2172fda8d1ffeeb93fccedf03357c6227e8d7ed226dbc4b8715a132459"
+    },
+    "stableInstallerAlias": "Pip-Studio-Setup.exe"
+  }
+}

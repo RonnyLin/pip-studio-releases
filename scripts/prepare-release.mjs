@@ -13,6 +13,8 @@ import { createReadStream, createWriteStream } from "node:fs";
 import { basename, join, resolve } from "node:path";
 import { Readable } from "node:stream";
 import { pipeline } from "node:stream/promises";
+import { spawn } from "node:child_process";
+import { fileURLToPath } from "node:url";
 
 const [, , manifestArg, outputArg, tagArg, sourceDirectoryArg] = process.argv;
 
@@ -39,6 +41,14 @@ if (tagArg !== `v${manifest.version}`) {
 }
 if (!/^\d+\.\d+\.\d+$/.test(manifest.version)) {
   throw new Error("version must use X.Y.Z numeric SemVer form");
+}
+
+// New releases contain separate domestic and overseas installers. Keep the
+// original single-edition verifier for historic tags and verify each edition
+// independently before merging the complete upload plan.
+if (manifest.global) {
+  await prepareEditions();
+  process.exit(0);
 }
 
 const sourceBaseUrl = new URL(manifest.sourceBaseUrl);
@@ -393,4 +403,40 @@ function capture(text, expression, label) {
     throw new Error(`latest.yml is missing ${label}`);
   }
   return match[1].trim();
+}
+
+async function prepareEditions() {
+  await mkdir(outputDirectory, { recursive: true });
+  const mergedAssets = [];
+  const names = new Set();
+  for (const edition of ["cn", "global"]) {
+    const editionManifest = edition === "cn"
+      ? { ...manifest, global: undefined }
+      : { version: manifest.version, title: manifest.title, sourceBaseUrl: manifest.sourceBaseUrl, ...manifest.global };
+    const workDirectory = join(outputDirectory, `.edition-${edition}`);
+    await mkdir(workDirectory, { recursive: true });
+    const editionManifestPath = join(workDirectory, "manifest.json");
+    await writeFile(editionManifestPath, JSON.stringify(editionManifest), "utf8");
+    const args = [fileURLToPath(import.meta.url), editionManifestPath, workDirectory, tagArg];
+    if (sourceDirectory) args.push(edition === "cn" ? sourceDirectory : join(sourceDirectory, "global"));
+    await new Promise((resolveChild, rejectChild) => {
+      const child = spawn(process.execPath, args, { stdio: "inherit" });
+      child.on("error", rejectChild);
+      child.on("close", code => code === 0 ? resolveChild() : rejectChild(new Error(`${edition} verification failed (${code})`)));
+    });
+    const prepared = JSON.parse(await readFile(join(workDirectory, "release-assets.json"), "utf8"));
+    for (const asset of prepared.assets) {
+      if (asset.fileName === "SHA256SUMS.txt") continue;
+      if (names.has(asset.fileName)) throw new Error(`Duplicate edition asset: ${asset.fileName}`);
+      names.add(asset.fileName);
+      await copyFile(join(workDirectory, asset.fileName), join(outputDirectory, asset.fileName));
+      mergedAssets.push(asset);
+    }
+  }
+  const checksumPath = join(outputDirectory, "SHA256SUMS.txt");
+  await writeFile(checksumPath, `${mergedAssets.map(asset => `${asset.sha256}  ${asset.fileName}`).join("\n")}\n`, "utf8");
+  mergedAssets.push({ fileName: "SHA256SUMS.txt", size: (await stat(checksumPath)).size, sha256: await sha256(checksumPath) });
+  await writeFile(join(outputDirectory, "release-assets.json"), `${JSON.stringify({ title: manifest.title, assets: mergedAssets }, null, 2)}\n`, "utf8");
+  await writeFile(join(outputDirectory, "release-assets.txt"), `${mergedAssets.map(asset => join(outputDirectory, asset.fileName)).join("\n")}\n`, "utf8");
+  console.log(`Prepared and verified ${mergedAssets.length} domestic + overseas assets for ${tagArg}.`);
 }
